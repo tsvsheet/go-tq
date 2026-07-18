@@ -12,7 +12,7 @@
 // through go-tsvsheet's expression seam — then executes the verbs over the
 // table model. ReadTable and WriteTable delegate grid I/O (comment semantics
 // included) to go-tsvsheet, so the two engines never disagree; when the input
-// holds formula cells and Raw is unset, Run computes the sheet first and
+// holds formula cells and IsRaw is unset, Run computes the sheet first and
 // queries the computed values (ADR 0003).
 //
 // The engine is filesystem- and network-free by construction: the compute

@@ -122,8 +122,8 @@ func TestGolden(t *testing.T) {
 		{
 			name:  "sort total order numbers before text bytewise after",
 			query: "sort k",
-			input: "k\n10\t\n1abc\n9\n\nx\n",
-			want:  "k\n9\n10\t\n\n1abc\nx\n",
+			input: "k\n10\t\n1abc\n9\n\nx\n", // the trailing TAB's overflow cell clips away: outside the 1-column header (§2)
+			want:  "k\n9\n10\n\n1abc\nx\n",
 		},
 		{
 			name:  "sort descending reverses the entire key order",

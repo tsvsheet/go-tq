@@ -175,6 +175,13 @@ func TestStrict(t *testing.T) {
 	// Lenient mode lets the same programs run, the error values as data.
 	_, err = runQuery(t, "derive bad = [stars] / 0", repos, tq.Options{})
 	want.NoError(err)
+
+	// A non-boolean predicate is no author error even under strict: the
+	// `(expr)=TRUE` wrapper's #VALUE! is an artifact, so the row drops
+	// without aborting.
+	out, err := runQuery(t, "where [name]", repos, tq.Options{IsStrict: true})
+	want.NoError(err)
+	want.Equal("name\tstars\tforks\tlang\n", out)
 }
 
 // TestBuilderErrorsAtPlan asserts builder-only failure paths surface at Run's

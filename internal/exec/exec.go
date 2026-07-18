@@ -63,11 +63,12 @@ type Compiled struct {
 	Name ColumnLabel
 }
 
-// Predicate is a compiled where predicate: the raw expression (whose value
-// strict mode inspects), and the `(expr)=TRUE` form whose TRUE result proves
-// the raw value is the boolean TRUE — not the string "TRUE", which the
-// tsvsheet comparison rejects as #VALUE! — so "exactly TRUE" (§6) is decided
-// by the engine's own typing, never by text.
+// Predicate is a compiled where predicate. Keep is the `(expr)=TRUE` form the
+// filter evaluates — its TRUE result proves the raw value is the boolean TRUE,
+// not the string "TRUE", which the tsvsheet comparison rejects as #VALUE! —
+// so "exactly TRUE" (§6) is decided by the engine's own typing, never by text.
+// Raw is the author's expression, evaluated only when strict mode must decide
+// whether an error result was the author's or a wrapper artifact.
 type Predicate struct {
 	Keep  tsvsheet.Expr
 	Raw   Compiled
@@ -202,18 +203,25 @@ func Filter(rows Rows, p Predicate, env Env) (Rows, error) {
 	return out, nil
 }
 
-// keepRow decides one row: the raw predicate value feeds strict mode, and the
-// `(expr)=TRUE` form confirms the boolean — a string "TRUE" fails it.
+// keepRow decides one row with a single evaluation of the `(expr)=TRUE` form
+// on the common path — one expression evaluation per row, so a side-effecting
+// predicate (IMPORT*) fires once. An error result needs disambiguating only
+// under strict mode: the wrapper turns every non-boolean raw value into
+// #VALUE!, so exactly then the raw predicate is evaluated to tell an authentic
+// author error (abort) from a wrapper artifact (drop).
 func keepRow(row Row, p Predicate, env Env, at RowNumber) (bool, error) {
 	g := rowGrid(row, p.Width)
-	text := evalText(p.Raw.Expr, g, env)
-	if env.IsStrict && isErrorText(cellText(text)) {
-		return false, strictReport(cellText(text), p.Raw.Name, at)
+	text := cellText(evalText(p.Keep, g, env))
+	if text == trueText {
+		return true, nil
 	}
-	if text != trueText {
+	if !env.IsStrict || !isErrorText(text) {
 		return false, nil
 	}
-	return evalText(p.Keep, g, env) == trueText, nil
+	if raw := cellText(evalText(p.Raw.Expr, g, env)); isErrorText(raw) {
+		return false, strictReport(raw, p.Raw.Name, at)
+	}
+	return false, nil
 }
 
 // DeriveRows applies the assignments to every row, left to right, appending or

@@ -42,6 +42,7 @@ func alignCorpus() []struct {
 		{tq: `"hi"`, sheet: `"hi"`, want: []string{"hi", "hi"}},
 		{tq: `TRUE`, sheet: `TRUE`, want: []string{"TRUE", "TRUE"}},
 		{tq: `#DIV/0!`, sheet: `#DIV/0!`, want: []string{"#DIV/0!", "#DIV/0!"}},
+		// -0 (not 0) for a negated empty cell is the engine's own rendering, asserted as-is.
 		{tq: `-[a]`, sheet: `-A{r}`, want: []string{"-2", "-0"}},
 		{tq: `+[c]`, sheet: `+C{r}`, want: []string{"3.5", "#N/A"}},
 		{tq: `[a]%`, sheet: `A{r}%`, want: []string{"0.02", "0"}},

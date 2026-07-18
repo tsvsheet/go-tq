@@ -2,6 +2,7 @@ package tq
 
 import (
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -78,22 +79,50 @@ func Parse(q Query) (Program, error) {
 // Run plans the program against t's header (or arity, headerless) and
 // executes every stage. Plan-time failures — ErrUnknownColumn, ErrCellRef,
 // ErrHeaderless, a builder expression's ErrSyntax — surface before any row is
-// processed. When the input holds formula cells and Raw is unset, the sheet
+// processed. When the input holds formula cells and IsRaw is unset, the sheet
 // is computed first and the query runs over the computed values (ADR 0003).
+// The returned Table shares no storage with t: mutating one never affects the
+// other.
 func (p Program) Run(t Table, opts Options) (Table, error) {
 	tbl, err := computeFirst(tableFor(t, opts), opts)
 	if err != nil {
 		return Table{}, err
 	}
-	pl, err := plan.New(p.prog, shapeOf(tbl, opts), plan.Options{IsStrict: opts.IsStrict, Compute: opts.compute()})
+	shape := shapeOf(tbl, opts)
+	pl, err := plan.New(p.prog, shape, plan.Options{IsStrict: opts.IsStrict, Compute: opts.compute()})
 	if err != nil {
 		return Table{}, err
 	}
-	rows, err := pl.Run(exec.Rows(tbl.Rows))
+	rows, err := pl.Run(exec.Rows(clipped(tbl.Rows, shape)))
 	if err != nil {
 		return Table{}, err
 	}
-	return Table{Header: pl.Header(), Rows: rows}, nil
+	return Table{Header: slices.Clone(pl.Header()), Rows: cloneRows(rows)}, nil
+}
+
+// clipped bounds every data row to the header's width (§2): a cell beyond the
+// last header column is outside the table model — no reference can reach it —
+// so it never enters the pipeline. Headerless mode is untouched: there the
+// schema width is the arity, the widest row.
+func clipped(rows [][]string, s plan.Shape) [][]string {
+	if !s.HasHeader {
+		return rows
+	}
+	out := make([][]string, len(rows))
+	for i, row := range rows {
+		out[i] = row[:min(len(row), s.Width)]
+	}
+	return out
+}
+
+// cloneRows deep-copies the row structure (cell strings are immutable), so a
+// returned Table shares no slice storage with the run's input.
+func cloneRows(rows exec.Rows) [][]string {
+	out := make([][]string, len(rows))
+	for i, row := range rows {
+		out[i] = slices.Clone(row)
+	}
+	return out
 }
 
 // tableFor normalizes the run's input per the options: headerless, every row

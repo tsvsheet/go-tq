@@ -166,3 +166,16 @@ func TestBuilderUnbracketedSpacedName(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "full title\nAlpha\n", out)
 }
+
+// TestBuilderGroupByNoKeys pins the builder-only whole-table aggregation:
+// with no keys every row falls into one group and the stage emits a single
+// row of aggregates. The grammar requires at least one key, so this form has
+// no query-text equivalent — it exists only through the builder.
+func TestBuilderGroupByNoKeys(t *testing.T) {
+	t.Parallel()
+	input := "a\n1\n2\n3\n"
+	program := tq.NewProgram(tq.GroupBy(nil, tq.Assignment{Name: "n", Expr: "counta([a])"}))
+	out, err := runProgram(t, program, input, tq.Options{})
+	require.NoError(t, err)
+	assert.Equal(t, "n\n3\n", out)
+}

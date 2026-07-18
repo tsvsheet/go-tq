@@ -1,6 +1,6 @@
 # go-tq
 
-The canonical engine of the tq query language (module `github.com/tsvsheet/go-tq`, root package `tq`): a `|`-separated pipeline of relational verbs over a TSV/tsvt table, every embedded expression evaluated through go-tsvsheet's expression seam. The normative language definition lives in [tsvsheet/tq](https://github.com/tsvsheet/tq) (SPECIFICATION.md + grammars); the API contract and SDD tree live in `tsvsheet/_projects/specs/tq/`.
+The canonical engine of the tq query language (module `github.com/tsvsheet/go-tq`, root package `tq`): a `|`-separated pipeline of relational verbs over a TSV/tsvt table, every embedded expression evaluated through go-tsvsheet's expression seam. The normative language definition lives in [tsvsheet/tq](https://github.com/tsvsheet/tq) (SPECIFICATION.md + grammars).
 
 ## Layout
 
@@ -12,7 +12,7 @@ The canonical engine of the tq query language (module `github.com/tsvsheet/go-tq
 
 ## Rules
 
-- Do not redesign semantics here: SPECIFICATION.md and the ADRs in `tsvsheet/_projects/specs/tq/decisions/` are normative. tq queries computed VALUES (compute-first unless `Raw`), addresses columns never cells, and `|` always means "next stage".
+- Do not redesign semantics here: SPECIFICATION.md in [tsvsheet/tq](https://github.com/tsvsheet/tq) is normative. tq queries computed VALUES (compute-first unless `IsRaw`), addresses columns never cells, and `|` always means "next stage".
 - Sentinels are `errs.Const` in [internal/constants](../internal/constants/), each distinct from go-tsvsheet's strings; never `fmt.Errorf`/`errors.New`.
 - Value receivers only; named parameter types; gocognit ≤ 7; 100.0% aggregate coverage with `src/grammar` excluded. `make check` must exit 0 (`make tools` first to populate `${GOBIN}`).
 - The corpus under [testdata/corpus](../testdata/corpus/) is copied verbatim from `tsvsheet/tq/testdata` — refresh it when the grammar repo's corpus changes, never edit it here.

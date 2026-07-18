@@ -142,9 +142,9 @@ func (p planner) dropStage(st ast.Stage, s schema) (step, schema, error) {
 	return pure(func(rows exec.Rows) exec.Rows { return exec.DropCols(rows, set) }), s.drop(set), nil
 }
 
-// whereStage compiles the predicate twice through the seam: the raw form
-// (whose value strict mode inspects) and the `(expr)=TRUE` form that proves
-// the value is the boolean TRUE.
+// whereStage compiles the predicate twice through the seam: the `(expr)=TRUE`
+// form the filter evaluates (its TRUE proves the value is the boolean TRUE)
+// and the raw form strict mode consults to attribute an error result.
 func (p planner) whereStage(st ast.Stage, s schema) (step, schema, error) {
 	ep, err := p.exprPlan(st.Expr, s)
 	if err != nil {

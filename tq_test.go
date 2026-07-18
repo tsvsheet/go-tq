@@ -26,7 +26,7 @@ func TestReadTableComments(t *testing.T) {
 }
 
 // TestReadTableHeaderModes asserts the header split: header-first by default,
-// all rows data under NoHeader, and an empty input yielding an empty table in
+// all rows data under IsHeaderless, and an empty input yielding an empty table in
 // both modes.
 func TestReadTableHeaderModes(t *testing.T) {
 	t.Parallel()
@@ -143,7 +143,7 @@ func TestComputeSerializationMatchesWriter(t *testing.T) {
 	assert.Equal(t, grid[2][1], out.Rows[1][0])
 }
 
-// TestNoHeaderIgnoresHeaderField asserts Run under NoHeader treats only Rows
+// TestNoHeaderIgnoresHeaderField asserts Run under IsHeaderless treats only Rows
 // as the table, whatever a hand-built Header holds.
 func TestNoHeaderIgnoresHeaderField(t *testing.T) {
 	t.Parallel()
@@ -170,4 +170,88 @@ func TestRunDoesNotMutateInput(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"a", "b"}, header)
 	assert.Equal(t, [][]string{{"1", "2"}, {"3", "4"}}, rows)
+}
+
+// TestRunOutputSharesNoStorage asserts the returned table is independent of
+// the input: mutating either side never shows through the other, even on
+// pass-through stages (limit) that would otherwise alias the caller's slices.
+func TestRunOutputSharesNoStorage(t *testing.T) {
+	t.Parallel()
+	header := []string{"a", "b"}
+	rows := [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}}
+	program, err := tq.Parse(tq.Query("limit 2"))
+	require.NoError(t, err)
+	out, err := program.Run(tq.Table{Header: header, Rows: rows}, tq.Options{})
+	require.NoError(t, err)
+
+	out.Header[0] = "mutated"
+	out.Rows[0][0] = "mutated"
+	assert.Equal(t, []string{"a", "b"}, header)
+	assert.Equal(t, [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}}, rows)
+
+	rows[1][1] = "mutated"
+	assert.Equal(t, "4", out.Rows[1][1])
+}
+
+// TestWideRowsClipToHeader asserts header mode bounds every data row to the
+// header's width (§2): a cell beyond the last header column is outside the
+// table model, so every verb sees — and emits — the same clipped row.
+func TestWideRowsClipToHeader(t *testing.T) {
+	t.Parallel()
+	in := tq.Table{Header: []string{"a", "b"}, Rows: [][]string{{"x", "y", "z"}, {"x", "y", "Q"}}}
+
+	for query, want := range map[string][][]string{
+		"limit 9":      {{"x", "y"}, {"x", "y"}},
+		"drop b":       {{"x"}, {"x"}},
+		"derive d = 1": {{"x", "y", "1"}, {"x", "y", "1"}},
+		"distinct":     {{"x", "y"}},
+		"select b":     {{"y"}, {"y"}},
+	} {
+		program, err := tq.Parse(tq.Query(query))
+		require.NoError(t, err, query)
+		out, err := program.Run(in, tq.Options{})
+		require.NoError(t, err, query)
+		assert.Equal(t, want, out.Rows, query)
+	}
+}
+
+// TestWhereDerivedBooleanColumn pins the coercion contract (§5): cell text
+// never reads back as a boolean, so a bare `where [flag]` over a derived
+// TRUE/FALSE column drops every row — the comparison against the canonical
+// text, `where [flag] = "TRUE"`, is the working idiom. If this test flips,
+// the engine's cell-coercion model changed.
+func TestWhereDerivedBooleanColumn(t *testing.T) {
+	t.Parallel()
+
+	empty, err := runQuery(t, "derive big = [stars] > 1000 | where [big] | select name", repos, tq.Options{})
+	require.NoError(t, err)
+	assert.Equal(t, "name\n", empty)
+
+	kept, err := runQuery(t, "derive big = [stars] > 1000 | where [big] = \"TRUE\" | select name", repos, tq.Options{})
+	require.NoError(t, err)
+	assert.Equal(t, "name\nalpha\ngamma\n", kept)
+}
+
+// countingFetcher counts Fetch calls, serving a constant one-cell body.
+type countingFetcher struct{ calls *int }
+
+// Fetch serves the body "5" under the requested media type, counting calls.
+func (f countingFetcher) Fetch(_ tsvsheet.ImportURL, accept tsvsheet.MediaType) (tsvsheet.FetchResult, error) {
+	*f.calls++
+	return tsvsheet.FetchResult{ContentType: accept, Body: []byte("5")}, nil
+}
+
+// TestWhereEvaluatesPredicateOncePerRow asserts the filter costs one predicate
+// evaluation per row on the keep path — a side-effecting IMPORT* predicate
+// fetches exactly once per input row, never twice.
+func TestWhereEvaluatesPredicateOncePerRow(t *testing.T) {
+	t.Parallel()
+	calls := 0
+	in := tq.Table{Header: []string{"a"}, Rows: [][]string{{"1"}, {"2"}, {"3"}}}
+	program, err := tq.Parse(tq.Query(`where importcell("https://x.test/") = 5`))
+	require.NoError(t, err)
+	out, err := program.Run(in, tq.Options{Fetcher: countingFetcher{calls: &calls}})
+	require.NoError(t, err)
+	assert.Len(t, out.Rows, 3)
+	assert.Equal(t, 3, calls)
 }

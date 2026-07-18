@@ -52,7 +52,9 @@ type Stage struct {
 }
 
 // NewProgram builds a Program from stages — identical in value and behavior
-// to parsing the equivalent query text.
+// to parsing the equivalent query text. With no stages the program is the
+// identity, a builder-only form: the grammar requires at least one stage
+// (Parse of empty text is ErrSyntax).
 func NewProgram(stages ...Stage) Program {
 	built := make([]ast.Stage, 0, len(stages))
 	for _, s := range stages {
@@ -78,7 +80,8 @@ func Where(expr Expression) Stage {
 }
 
 // Derive appends computed columns, or replaces in place on name collision,
-// left to right.
+// left to right. With no assignments the stage is the identity, a builder-only
+// form the grammar (which requires at least one assignment) cannot express.
 func Derive(assignments ...Assignment) Stage {
 	return Stage{stage: ast.Stage{Verb: ast.VerbDerive, Assigns: astAssigns(assignments)}}
 }
@@ -119,6 +122,9 @@ func Offset(n RowCount) Stage {
 
 // GroupBy partitions by the key columns and emits one row per group — key
 // columns first, then one column per aggregate — in first-appearance order.
+// With no keys every row falls in one group, emitting a single whole-table
+// aggregation row — a builder-only form the grammar (which requires at least
+// one key) cannot express.
 func GroupBy(keys []Column, aggs ...Assignment) Stage {
 	return Stage{stage: ast.Stage{Verb: ast.VerbGroup, Columns: astColumns(keys), Assigns: astAssigns(aggs)}}
 }
