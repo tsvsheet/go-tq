@@ -1,0 +1,25 @@
+# Per-repo stickler overlay.
+#
+# Soft-finding baselines recorded at SUITE ADOPTION (2026-08-08). This repo had
+# never adopted the yze suite, so every softened rule was measured against an
+# implicit 0 and the gate failed on its first contact with rules that landed
+# fleet-wide months ago. These are the counts as found, not a target: the
+# ratchet allows them to FALL and never grow, so the backlog is visible and
+# bounded rather than blocking every unrelated change.
+#
+# yze/invariant and yze/filesize are permanent probes (judgment-bound). The rest
+# are HARD rules softened for rollout and return to gating once they reach zero.
+soft-baseline:
+  # exhaustive: 1 — plan.stage names every verb except VerbGroup, which the
+  # `default` arm handles. Naming it would make `default` unreachable (the
+  # parser never yields a verb outside the set, and the test package is
+  # external so the arm cannot be driven), dropping the package below the
+  # 100% coverage gate. Closing this one properly means restructuring the
+  # dispatch, not adding a case.
+  exhaustive: 1
+  yze/invariant: 25
+  yze/testfile: 4
+  yze/errtested: 4
+  yze/filesize: 3
+  yze/fuzzreq: 1
+  yze/enumdiscrim: 1
