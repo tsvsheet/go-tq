@@ -16,8 +16,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/tsvsheet/go-isnow v0.1.10 h1:of6QVKqOWKh3bzd4WEAFXKxmqpWd+ParmCqculbmqmg=
 github.com/tsvsheet/go-isnow v0.1.10/go.mod h1:+3c6z4f0TvrNBJOzyaKi4fSuFkVXmOjNjtFDcxOs5iU=
-github.com/tsvsheet/go-tsvsheet v0.21.1 h1:ICwRXAJFd7DSHXxl6jYErzXqcIvctEmgxGBUsAKIIYE=
-github.com/tsvsheet/go-tsvsheet v0.21.1/go.mod h1:qJY/pFtY24apdl5fjrkgkqtLbMcQe+2ZuhhrDhlflik=
+github.com/tsvsheet/go-tsvsheet v0.27.9 h1:nclSYiPFHK+1aIvd2TL02abUsphiTRa6SSz2l34koi8=
+github.com/tsvsheet/go-tsvsheet v0.27.9/go.mod h1:/wdhi4lT6WC2/XVfLUxxZVTLpsAj6DeVU2F0g7M9/2U=
 golang.org/x/exp v0.0.0-20260727155853-b88d891fe743 h1:ex206bKw+v3K0dm3andkrIF+ijyQKJG1pLgwQ2PYdQM=
 golang.org/x/exp v0.0.0-20260727155853-b88d891fe743/go.mod h1:EdfpwwqSu+0Li0mzskwHU6FWDV3t9Q+RZDo3QMUtL3Q=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
