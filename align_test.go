@@ -42,8 +42,13 @@ func alignCorpus() []struct {
 		{tq: `"hi"`, sheet: `"hi"`, want: []string{"hi", "hi"}},
 		{tq: `TRUE`, sheet: `TRUE`, want: []string{"TRUE", "TRUE"}},
 		{tq: `#DIV/0!`, sheet: `#DIV/0!`, want: []string{"#DIV/0!", "#DIV/0!"}},
-		// -0 (not 0) for a negated empty cell is the engine's own rendering, asserted as-is.
-		{tq: `-[a]`, sheet: `-A{r}`, want: []string{"-2", "-0"}},
+		// Negating an empty cell yields 0, not -0: negative zero is a float64
+		// distinction with no meaning in a grid, and a cell reading "-0" is a
+		// defect rather than a rendering choice. This previously asserted "-0"
+		// as "the engine's own rendering, asserted as-is" — an expectation copied
+		// from a run instead of taken from the contract, which pinned the defect
+		// so that go-tsvsheet fixing it registered here as a failure.
+		{tq: `-[a]`, sheet: `-A{r}`, want: []string{"-2", "0"}},
 		{tq: `+[c]`, sheet: `+C{r}`, want: []string{"3.5", "#N/A"}},
 		{tq: `[a]%`, sheet: `A{r}%`, want: []string{"0.02", "0"}},
 		{tq: `[c]^2`, sheet: `C{r}^2`, want: []string{"12.25", "#N/A"}},
